@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Detector de Emoção</title>
+</head>
+<body>
+    <h1>Detector de Emoção (Upload de Imagem)</h1>
+
+    <input type="file" accept="image/*" onchange="predictImage(event)">
+    <br><br>
+    <img id="img" width="200">
+    <h2 id="resultado"></h2>
+
+    <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@0.8/dist/teachablemachine-image.min.js"></script>
+
+    <script>
+        const URL = "https://teachablemachine.withgoogle.com/models/AJfBm1PI6/";
+        let model;
+
+        async function loadModel() {
+            model = await tmImage.load(URL + "model.json", URL + "metadata.json");
+        }
+
+        loadModel();
+
+        async function predictImage(event) {
+            const img = document.getElementById("img");
+            img.src = URL.createObjectURL(event.target.files[0]);
+
+            img.onload = async () => {
+                const prediction = await model.predict(img);
+
+                if (prediction[0].probability > 0.8) {
+                    document.getElementById("resultado").innerText =
+                        "😊 Emoção detectada: Feliz";
+                } else {
+                    document.getElementById("resultado").innerText =
+                        "😢 Emoção detectada: Triste";
+                }
+            };
+        }
+    </script>
+</body>
+</html>

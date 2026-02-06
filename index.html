@@ -1,57 +1,53 @@
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
-    <meta charset="UTF-8">
-    <title>Detector de Emoção (Upload de Imagem)</title>
+  <meta charset="UTF-8">
+  <title>Detector de Emoção</title>
 </head>
+
 <body>
-    <h1>Detector de Emoção (Upload de Imagem)</h1>
+  <h1>Detector de Emoção (Upload de Imagem)</h1>
 
-    <input type="file" accept="image/*" onchange="alert('arquivo selecionado'); predictImage(event)">
-    <br><br>
+  <input type="file" accept="image/*" id="imageUpload">
+  <br><br>
+  <img id="preview" width="224">
+  <div id="label-container"></div>
 
-    <img id="img" width="200">
-    <h2 id="resultado"></h2>
+  <!-- SCRIPTS OBRIGATÓRIOS (ORDEM IMPORTA) -->
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest"></script>
 
-    <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@0.8/dist/teachablemachine-image.min.js"></script>
+  <script>
+    const URL = "https://teachablemachine.withgoogle.com/models/6M3mHExjv/";
+    let model;
 
-    <script>
-        const URL = "https://teachablemachine.withgoogle.com/models/6M3mHExjv/";
-        let model = null;
+    async function loadModel() {
+      model = await tmImage.load(
+        URL + "model.json",
+        URL + "metadata.json"
+      );
+      console.log("Modelo carregado");
+    }
 
-        async function loadModel() {
-            model = await tmImage.load(
-                URL + "model.json",
-                URL + "metadata.json"
-            );
-            console.log("Modelo carregado");
-        }
+    loadModel();
 
-        loadModel();
+    document.getElementById("imageUpload").addEventListener("change", async (event) => {
+      const file = event.target.files[0];
+      if (!file || !model) return;
 
-        async function predictImage(event) {
-            if (!model) {
-                alert("Modelo ainda não carregou");
-                return;
-            }
+      const img = document.getElementById("preview");
+      img.src = URL.createObjectURL(file);
 
-            const img = document.getElementById("img");
-            img.src = URL.createObjectURL(event.target.files[0]);
+      img.onload = async () => {
+        const predictions = await model.predict(img);
+        const container = document.getElementById("label-container");
+        container.innerHTML = "";
 
-            img.onload = async () => {
-                const prediction = await model.predict(img);
-
-                let maior = prediction[0];
-                for (let p of prediction) {
-                    if (p.probability > maior.probability) {
-                        maior = p;
-                    }
-                }
-
-                document.getElementById("resultado").innerText =
-                    "Emoção detectada: " + maior.className;
-            };
-        }
-    </script>
+        predictions.forEach(p => {
+          container.innerHTML += `${p.className}: ${(p.probability * 100).toFixed(2)}%<br>`;
+        });
+      };
+    });
+  </script>
 </body>
 </html>

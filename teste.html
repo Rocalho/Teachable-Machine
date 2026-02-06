@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Teste Teachable Machine</title>
+</head>
+<body>
+
+<h1>Teste de Modelo</h1>
+<p id="status">Carregando...</p>
+
+<script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@0.8/dist/teachablemachine-image.min.js"></script>
+
+<script>
+  const URL = "COLE_AQUI_A_URL_NOVA_DO_MODELO/";
+
+  async function start() {
+    try {
+      const model = await tmImage.load(
+        URL + "model.json",
+        URL + "metadata.json"
+      );
+      document.getElementById("status").innerText =
+        "✅ MODELO CARREGOU COM SUCESSO";
+    } catch (e) {
+      document.getElementById("status").innerText =
+        "❌ ERRO AO CARREGAR MODELO";
+      console.error(e);
+    }
+  }
+
+  start();
+</script>
+
+</body>
+</html>

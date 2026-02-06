@@ -1,54 +1,338 @@
 <!DOCTYPE html>
-<html lang="pt-br">
+<html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
-  <title>Detector de Emoção</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Detector de Emoções</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 600px;
+            width: 100%;
+            text-align: center;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 1.1em;
+        }
+
+        .upload-area {
+            border: 3px dashed #667eea;
+            border-radius: 15px;
+            padding: 40px;
+            margin-bottom: 30px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .upload-area:hover {
+            background: #f8f9fa;
+            border-color: #764ba2;
+        }
+
+        .upload-area.dragover {
+            background: #e3e8ff;
+            border-color: #764ba2;
+        }
+
+        #imagePreview {
+            max-width: 100%;
+            max-height: 400px;
+            margin: 20px 0;
+            border-radius: 10px;
+            display: none;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            font-size: 1.1em;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: transform 0.2s;
+            font-weight: bold;
+            display: inline-block;
+            margin: 10px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+
+        #fileInput {
+            display: none;
+        }
+
+        .result {
+            margin-top: 30px;
+            padding: 30px;
+            background: #f8f9fa;
+            border-radius: 15px;
+            display: none;
+        }
+
+        .result.show {
+            display: block;
+        }
+
+        #emotion {
+            font-size: 3em;
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        #confidence {
+            font-size: 1.2em;
+            color: #666;
+            margin-bottom: 20px;
+        }
+
+        .result.feliz {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+        }
+
+        .result.feliz #emotion,
+        .result.feliz #confidence {
+            color: white;
+        }
+
+        .result.triste {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+        }
+
+        .result.triste #emotion,
+        .result.triste #confidence {
+            color: white;
+        }
+
+        #predictions {
+            margin-top: 15px;
+            text-align: left;
+        }
+
+        #predictions div {
+            background: rgba(255, 255, 255, 0.3);
+            padding: 8px 15px;
+            margin: 5px 0;
+            border-radius: 8px;
+        }
+
+        .loading {
+            display: none;
+            margin: 20px 0;
+        }
+
+        .loading.show {
+            display: block;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 20px;
+            }
+            
+            h1 {
+                font-size: 2em;
+            }
+            
+            #emotion {
+                font-size: 2em;
+            }
+        }
+    </style>
 </head>
-
 <body>
-  <h2>Detector de Emoção</h2>
+    <div class="container">
+        <h1>😊😢 Detector de Emoções</h1>
+        <p class="subtitle">Envie uma foto e descubra se a pessoa está feliz ou triste!</p>
 
-  <input type="file" id="imageUpload" accept="image/*">
-  <br><br>
+        <div class="upload-area" id="uploadArea">
+            <h3>📸 Clique ou arraste uma imagem aqui</h3>
+            <p style="color: #666; margin-top: 10px;">Formatos: JPG, PNG, GIF</p>
+        </div>
 
-  <img id="preview" width="224">
-  <div id="label-container"></div>
+        <input type="file" id="fileInput" accept="image/*">
+        
+        <img id="imagePreview" alt="Preview">
 
-  <!-- BIBLIOTECAS (ORDEM OBRIGATÓRIA) -->
-  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest"></script>
+        <div class="loading" id="loading">
+            <p>🔄 Analisando imagem...</p>
+        </div>
 
-  <!-- SEU CÓDIGO -->
-  <script>
-    const URL = "https://teachablemachine.withgoogle.com/models/6M3mHExjv/";
-    let model;
+        <div class="result" id="result">
+            <h2 id="emotion">😊 FELIZ!</h2>
+            <p id="confidence">Confiança: 95%</p>
+            <div id="predictions"></div>
+        </div>
+    </div>
 
-    async function loadModel() {
-      model = await tmImage.load(
-        URL + "model.json",
-        URL + "metadata.json"
-      );
-      console.log("Modelo carregado");
-    }
+    <!-- Teachable Machine Libraries -->
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>
+    
+    <script>
+        const URL = "https://teachablemachine.withgoogle.com/models/6M3mHExjv/";
 
-    loadModel();
 
-    document.getElementById("imageUpload").addEventListener("change", async (e) => {
-      if (!model) return;
+        let model;
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const imagePreview = document.getElementById('imagePreview');
+        const resultDiv = document.getElementById('result');
+        const emotionText = document.getElementById('emotion');
+        const confidenceText = document.getElementById('confidence');
+        const predictionsDiv = document.getElementById('predictions');
+        const loadingDiv = document.getElementById('loading');
 
-      const img = document.getElementById("preview");
-      img.src = URL.createObjectURL(e.target.files[0]);
+        // Carrega o modelo quando a página carregar
+        async function loadModel() {
+            const modelURL = URL + "model.json";
+            const metadataURL = URL + "metadata.json";
+            model = await tmImage.load(modelURL, metadataURL);
+            console.log("✅ Modelo carregado com sucesso!");
+        }
 
-      img.onload = async () => {
-        const prediction = await model.predict(img);
-        const container = document.getElementById("label-container");
-        container.innerHTML = "";
+        // Inicializa o modelo
+        loadModel();
 
-        prediction.forEach(p => {
-          container.innerHTML += `${p.className}: ${(p.probability * 100).toFixed(2)}%<br>`;
+        // Clique na área de upload
+        uploadArea.addEventListener('click', () => {
+            fileInput.click();
         });
-      };
-    });
-  </script>
+
+        // Drag and drop
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            const file = e.dataTransfer.files[0];
+            handleFile(file);
+        });
+
+        // Selecionar arquivo
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            handleFile(file);
+        });
+
+        // Processar arquivo
+        function handleFile(file) {
+            if (file && file.type.startsWith('image/')) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    imagePreview.src = e.target.result;
+                    imagePreview.style.display = 'block';
+                    predictImage(imagePreview);
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        // Fazer predição
+        async function predictImage(image) {
+            loadingDiv.classList.add('show');
+            resultDiv.classList.remove('show');
+
+            // Aguarda a imagem carregar completamente
+            await new Promise((resolve) => {
+                if (image.complete) {
+                    resolve();
+                } else {
+                    image.onload = resolve;
+                }
+            });
+
+            // Faz a predição
+            const prediction = await model.predict(image);
+            
+            loadingDiv.classList.remove('show');
+            showResults(prediction);
+        }
+
+        // Mostrar resultados
+        function showResults(predictions) {
+            // Limpa predições anteriores
+            predictionsDiv.innerHTML = '';
+            resultDiv.classList.remove('feliz', 'triste');
+
+            // Encontra a maior probabilidade
+            let maxProb = 0;
+            let detectedEmotion = '';
+
+            predictions.forEach(pred => {
+                // Adiciona todas as predições
+                const div = document.createElement('div');
+                div.textContent = `${pred.className}: ${(pred.probability * 100).toFixed(2)}%`;
+                predictionsDiv.appendChild(div);
+
+                // Identifica a maior
+                if (pred.probability > maxProb) {
+                    maxProb = pred.probability;
+                    detectedEmotion = pred.className;
+                }
+            });
+
+            // Atualiza a UI
+            if (maxProb > 0.5) {
+                const emotion = detectedEmotion.toLowerCase();
+                
+                if (emotion.includes('feliz') || emotion.includes('happy') || emotion.includes('alegre')) {
+                    emotionText.textContent = '😊 FELIZ!';
+                    resultDiv.classList.add('feliz');
+                } else if (emotion.includes('triste') || emotion.includes('sad')) {
+                    emotionText.textContent = '😢 TRISTE';
+                    resultDiv.classList.add('triste');
+                } else {
+                    emotionText.textContent = detectedEmotion;
+                }
+                
+                confidenceText.textContent = `Confiança: ${(maxProb * 100).toFixed(2)}%`;
+            } else {
+                emotionText.textContent = '🤔 Incerto';
+                confidenceText.textContent = 'Confiança muito baixa';
+            }
+
+            resultDiv.classList.add('show');
+        }
+    </script>
 </body>
 </html>

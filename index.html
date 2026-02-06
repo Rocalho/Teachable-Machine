@@ -6,17 +6,19 @@
 </head>
 
 <body>
-  <h1>Detector de Emoção (Upload de Imagem)</h1>
+  <h2>Detector de Emoção</h2>
 
-  <input type="file" accept="image/*" id="imageUpload">
+  <input type="file" id="imageUpload" accept="image/*">
   <br><br>
+
   <img id="preview" width="224">
   <div id="label-container"></div>
 
-  <!-- SCRIPTS OBRIGATÓRIOS (ORDEM IMPORTA) -->
+  <!-- BIBLIOTECAS (ORDEM OBRIGATÓRIA) -->
   <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest"></script>
   <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest"></script>
 
+  <!-- SEU CÓDIGO -->
   <script>
     const URL = "https://teachablemachine.withgoogle.com/models/6M3mHExjv/";
     let model;
@@ -31,19 +33,18 @@
 
     loadModel();
 
-    document.getElementById("imageUpload").addEventListener("change", async (event) => {
-      const file = event.target.files[0];
-      if (!file || !model) return;
+    document.getElementById("imageUpload").addEventListener("change", async (e) => {
+      if (!model) return;
 
       const img = document.getElementById("preview");
-      img.src = URL.createObjectURL(file);
+      img.src = URL.createObjectURL(e.target.files[0]);
 
       img.onload = async () => {
-        const predictions = await model.predict(img);
+        const prediction = await model.predict(img);
         const container = document.getElementById("label-container");
         container.innerHTML = "";
 
-        predictions.forEach(p => {
+        prediction.forEach(p => {
           container.innerHTML += `${p.className}: ${(p.probability * 100).toFixed(2)}%<br>`;
         });
       };
